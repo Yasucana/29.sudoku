@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sudoku</title>
+  <style>
+    body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
+    table { border-collapse: collapse; }
+    td { border: 1px solid #000; width: 40px; height: 40px; text-align: center; }
+    input { width: 100%; height: 100%; text-align: center; font-size: 18px; }
+    .thick-border-left { border-left: 3px solid black; }
+    .thick-border-top { border-top: 3px solid black; }
+  </style>
+</head>
+<body>
+  <h1>Sudoku</h1>
+  <label for="difficulty">Difficulty (1-100):</label>
+  <input type="number" id="difficulty" min="1" max="100" value="50">
+  <button onclick="generatePuzzle()">Generate Puzzle</button>
+  <table id="sudoku-board"></table>
+  <button onclick="checkSudoku()">Check</button>
+  <script>
+    function generateFullBoard() {
+      const board = Array.from({ length: 9 }, () => Array(9).fill(0));
+      function isValid(board, row, col, num) {
+        for (let x = 0; x < 9; x++) {
+          if (board[row][x] === num || board[x][col] === num ||
+              board[3 * Math.floor(row / 3) + Math.floor(x / 3)][3 * Math.floor(col / 3) + x % 3] === num) {
+            return false;
+          }
+        }
+        return true;
+      }
+      function fill(board) {
+        for (let row = 0; row < 9; row++) {
+          for (let col = 0; col < 9; col++) {
+            if (board[row][col] === 0) {
+              let nums = [1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
+              for (let num of nums) {
+                if (isValid(board, row, col, num)) {
+                  board[row][col] = num;
+                  if (fill(board)) return true;
+                  board[row][col] = 0;
+                }
+              }
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+      fill(board);
+      return board;
+    }
+
+    function createPuzzle(board, difficulty) {
+      const puzzle = board.map(row => row.slice());
+      let blanks = Math.floor((difficulty / 100) * 60 + 20); // 20〜80個を空白に
+      while (blanks > 0) {
+        let i = Math.floor(Math.random() * 9);
+        let j = Math.floor(Math.random() * 9);
+        if (puzzle[i][j] !== '') {
+          puzzle[i][j] = '';
+          blanks--;
+        }
+      }
+      return puzzle;
+    }
+
+    function createBoard(puzzle) {
+      const boardElem = document.getElementById('sudoku-board');
+      boardElem.innerHTML = '';
+      for (let i = 0; i < 9; i++) {
+        const row = document.createElement('tr');
+        for (let j = 0; j < 9; j++) {
+          const cell = document.createElement('td');
+          if (j % 3 === 0) cell.classList.add('thick-border-left');
+          if (i % 3 === 0) cell.classList.add('thick-border-top');
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.maxLength = 1;
+          input.pattern = '[1-9]';
+          if (puzzle[i][j] !== '') {
+            input.value = puzzle[i][j];
+            input.disabled = true;
+          }
+          cell.appendChild(input);
+          row.appendChild(cell);
+        }
+        boardElem.appendChild(row);
+      }
+    }
+
+    function generatePuzzle() {
+      const difficulty = parseInt(document.getElementById('difficulty').value);
+      const full = generateFullBoard();
+      const puzzle = createPuzzle(full, difficulty);
+      createBoard(puzzle);
+    }
+
+    function checkSudoku() {
+      const board = document.querySelectorAll('#sudoku-board tr');
+      const getValue = (i, j) => board[i].children[j].firstChild.value;
+      const isValid = () => {
+        for (let i = 0; i < 9; i++) {
+          let row = new Set(), col = new Set(), box = new Set();
+          for (let j = 0; j < 9; j++) {
+            const rVal = getValue(i, j);
+            const cVal = getValue(j, i);
+            const bVal = getValue(3 * Math.floor(i / 3) + Math.floor(j / 3), 3 * (i % 3) + (j % 3));
+            if (rVal && row.has(rVal)) return false;
+            if (cVal && col.has(cVal)) return false;
+            if (bVal && box.has(bVal)) return false;
+            if (rVal) row.add(rVal);
+            if (cVal) col.add(cVal);
+            if (bVal) box.add(bVal);
+          }
+        }
+        return true;
+      };
+      alert(isValid() ? 'Valid Sudoku!' : 'There is an error in the puzzle.');
+    }
+
+    generatePuzzle();
+  </script>
+</body>
+</html>
